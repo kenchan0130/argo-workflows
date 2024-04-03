@@ -258,6 +258,35 @@ func (m migrate) Exec(ctx context.Context) (err error) {
 		// add indexes for list archived workflow performance. #8836
 		ansiSQLChange(`create index argo_archived_workflows_i4 on argo_archived_workflows (startedat)`),
 		ansiSQLChange(`create index argo_archived_workflows_labels_i1 on argo_archived_workflows_labels (name,value)`),
+		ansiSQLChange(`alter table argo_archived_workflows_labels drop foreign key argo_archived_workflows_labels_ibfk_1`),
+		ansiSQLChange(`alter table argo_archived_workflows_labels drop primary key, add primary key(uid,name,clustername)`),
+		ansiSQLChange(`alter table argo_archived_workflows drop primary key, add primary key(uid,clustername)`),
+		ansiSQLChange(`alter table argo_archived_workflows_labels add constraint argo_archived_workflows_labels_ibfk_1 foreign key (uid, clustername) references argo_archived_workflows (uid, clustername) on delete cascade on update restrict`),
+		// drop argo_archived_workflows index
+		ternary(dbType == MySQL,
+			ansiSQLChange(`drop index argo_archived_workflows_i1 on argo_archived_workflows`),
+			ansiSQLChange(`drop index argo_archived_workflows_i1`),
+		),
+		ternary(dbType == MySQL,
+			ansiSQLChange(`drop index argo_archived_workflows_i2 on argo_archived_workflows`),
+			ansiSQLChange(`drop index argo_archived_workflows_i2`),
+		),
+		ternary(dbType == MySQL,
+			ansiSQLChange(`drop index argo_archived_workflows_i3 on argo_archived_workflows`),
+			ansiSQLChange(`drop index argo_archived_workflows_i3`),
+		),
+		ternary(dbType == MySQL,
+			ansiSQLChange(`drop index argo_archived_workflows_i4 on argo_archived_workflows`),
+			ansiSQLChange(`drop index argo_archived_workflows_i4`),
+		),
+		// add indexes for archived workflows performance.
+		ansiSQLChange(`create index argo_archived_workflows_i1 on argo_archived_workflows (finishedat,namespace,clustername,instanceid)`),
+		ansiSQLChange(`create index argo_archived_workflows_i2 on argo_archived_workflows (name,namespace,clustername,instanceid,startedat)`),
+		ansiSQLChange(`create index argo_archived_workflows_i3 on argo_archived_workflows (namespace,clustername,instanceid,startedat)`),
+		ansiSQLChange(`create index argo_archived_workflows_i4 on argo_archived_workflows (name,clustername,instanceid,startedat)`),
+		ansiSQLChange(`create index argo_archived_workflows_i5 on argo_archived_workflows (clustername,instanceid,startedat)`),
+		ansiSQLChange(`create index argo_archived_workflows_labels_i2 on argo_archived_workflows_labels (uid,name,clustername)`),
+		ansiSQLChange(`create index argo_archived_workflows_labels_i3 on argo_archived_workflows_labels (uid,value,name,clustername)`),
 	} {
 		err := m.applyChange(changeSchemaVersion, change)
 		if err != nil {
